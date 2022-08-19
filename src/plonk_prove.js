@@ -27,7 +27,7 @@ import { Scalar, utils, BigBuffer } from "ffjavascript";
 const { stringifyBigInts } = utils;
 import jsSha3 from "js-sha3";
 const { keccak256 } = jsSha3;
-import { buildPoseidon, buildPoseidonWasm } from "circomlibjs";
+import { buildPoseidon } from "circomlibjs";
 import { assert } from "chai";
 
 export default async function plonk16Prove(
@@ -35,11 +35,11 @@ export default async function plonk16Prove(
 	witnessFileName,
 	logger
 ) {
-	function poseidonHash(arr) {
-        let poseidon = await buildPoseidon();
+	async function poseidonHash(arr) {
+		let poseidon = await buildPoseidon();
 
 		let poseidonInputCount = 16;
-        let fieldSize = 32;
+		let fieldSize = 32;
 
 		let noOfInputs = arr.byteLength / fieldSize;
 		if (noOfInputs * fieldSize != arr.byteLength)
@@ -48,11 +48,17 @@ export default async function plonk16Prove(
 		let output;
 		for (let i = 0; i < noOfInputs; i++) {
 			let inputArr = new Uint8Array(poseidonInputCount * fieldSize);
-			inputArr.set(arr.slice(poseidonInputCount * fieldSize * i, poseidonInputCount * fieldSize * (i+1)), 0);
-            output = poseidon(inputArr, output, 1)
+			inputArr.set(
+				arr.slice(
+					poseidonInputCount * fieldSize * i,
+					poseidonInputCount * fieldSize * (i + 1)
+				),
+				0
+			);
+			output = poseidon(inputArr, output, 1);
 		}
 
-        return output
+		return output;
 	}
 
 	const { fd: fdWtns, sections: sectionsWtns } =
@@ -309,12 +315,12 @@ export default async function plonk16Prove(
 			proof.C
 		);
 
-		ch.beta = hashToFr(transcript1);
+		ch.beta = await hashToFr(transcript1);
 		if (logger) logger.debug("beta: " + Fr.toString(ch.beta));
 
 		const transcript2 = new Uint8Array(n8r);
 		Fr.toRprBE(transcript2, 0, ch.beta);
-		ch.gamma = hashToFr(transcript2);
+		ch.gamma = await hashToFr(transcript2);
 		if (logger) logger.debug("gamma: " + Fr.toString(ch.gamma));
 
 		let numArr = new BigBuffer(Fr.n8 * zkey.domainSize);
@@ -480,7 +486,7 @@ export default async function plonk16Prove(
 		const transcript3 = new Uint8Array(G1.F.n8 * 2);
 		G1.toRprUncompressed(transcript3, 0, proof.Z);
 
-		ch.alpha = hashToFr(transcript3);
+		ch.alpha = await hashToFr(transcript3);
 
 		if (logger) logger.debug("alpha: " + Fr.toString(ch.alpha));
 
@@ -852,7 +858,7 @@ export default async function plonk16Prove(
 		G1.toRprUncompressed(transcript4, 0, proof.T1);
 		G1.toRprUncompressed(transcript4, G1.F.n8 * 2, proof.T2);
 		G1.toRprUncompressed(transcript4, G1.F.n8 * 4, proof.T3);
-		ch.xi = hashToFr(transcript4);
+		ch.xi = await hashToFr(transcript4);
 
 		if (logger) logger.debug("xi: " + Fr.toString(ch.xi));
 
@@ -949,7 +955,7 @@ export default async function plonk16Prove(
 		Fr.toRprBE(transcript5, n8r * 5, proof.eval_zw);
 		Fr.toRprBE(transcript5, n8r * 6, proof.eval_r);
 		ch.v = [];
-		ch.v[1] = hashToFr(transcript5);
+		ch.v[1] = await hashToFr(transcript5);
 		if (logger) logger.debug("v: " + Fr.toString(ch.v[1]));
 
 		for (let i = 2; i <= 6; i++) ch.v[i] = Fr.mul(ch.v[i - 1], ch.v[1]);
@@ -1052,7 +1058,8 @@ export default async function plonk16Prove(
 		proof.Wxiw = await expTau(pol_wxiw, "multiexp Wxiw");
 	}
 
-	function hashToFr(transcript) {
+	async function hashToFr(transcript) {
+		return Fr.e(await poseidonHash(transcript));
 		const v = Scalar.fromRprBE(
 			new Uint8Array(keccak256.arrayBuffer(transcript))
 		);

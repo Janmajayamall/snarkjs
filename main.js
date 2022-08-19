@@ -1,5 +1,3 @@
-
-
 export * as groth16 from "./src/groth16.js";
 export * as powersOfTau from "./src/powersoftau.js";
 export * as r1cs from "./src/r1cs.js";
