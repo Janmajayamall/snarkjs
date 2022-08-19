@@ -28,7 +28,6 @@ const { stringifyBigInts } = utils;
 import jsSha3 from "js-sha3";
 const { keccak256 } = jsSha3;
 import { buildPoseidon } from "circomlibjs";
-import { assert } from "chai";
 
 export default async function plonk16Prove(
 	zkeyFileName,
