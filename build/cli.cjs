@@ -16,7 +16,6 @@ var ejs = require('ejs');
 var circom_runtime = require('circom_runtime');
 require('js-sha3');
 var circomlibjs = require('circomlibjs');
-require('chai');
 var bfj = require('bfj');
 var Logger = require('logplease');
 
