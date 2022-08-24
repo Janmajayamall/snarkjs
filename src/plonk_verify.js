@@ -25,6 +25,7 @@ const { unstringifyBigInts } = utils;
 import jsSha3 from "js-sha3";
 import { buildPoseidon } from "circomlibjs";
 const { keccak256 } = jsSha3;
+import { Transcript } from "./poseidon_transcript.js";
 
 export default async function plonkVerify(
 	_vk_verifier,
@@ -182,57 +183,83 @@ async function calculateChallanges(curve, proof, publicSignals) {
 	const n8r = curve.Fr.n8;
 	const res = {};
 
-	const transcript1 = new Uint8Array(
-		publicSignals.length * n8r + G1.F.n8 * 2 * 3
+	// instantiate Transcript
+	let transcript = new Transcript(
+		`${process.cwd()}/src/poseidon_spec.json`,
+		curve
 	);
+	await transcript.load();
+
+	// const transcript1 = new Uint8Array(
+	// 	publicSignals.length * n8r + G1.F.n8 * 2 * 3
+	// );
 	for (let i = 0; i < publicSignals.length; i++) {
-		Fr.toRprBE(transcript1, i * n8r, Fr.e(publicSignals[i]));
+		transcript.writeScalar(Fr.e(publicSignals[i]));
+		// Fr.toRprBE(transcript1, i * n8r, Fr.e(publicSignals[i]));
 	}
-	G1.toRprUncompressed(transcript1, publicSignals.length * n8r + 0, proof.A);
-	G1.toRprUncompressed(
-		transcript1,
-		publicSignals.length * n8r + G1.F.n8 * 2,
-		proof.B
-	);
-	G1.toRprUncompressed(
-		transcript1,
-		publicSignals.length * n8r + G1.F.n8 * 4,
-		proof.C
-	);
+	transcript.writePoint(proof.A);
+	transcript.writePoint(proof.B);
+	transcript.writePoint(proof.C);
 
-	res.beta = await hashToFr(curve, transcript1);
+	// G1.toRprUncompressed(transcript1, publicSignals.length * n8r + 0, proof.A);
+	// G1.toRprUncompressed(
+	// 	transcript1,
+	// 	publicSignals.length * n8r + G1.F.n8 * 2,
+	// 	proof.B
+	// );
+	// G1.toRprUncompressed(
+	// 	transcript1,
+	// 	publicSignals.length * n8r + G1.F.n8 * 4,
+	// 	proof.C
+	// );
 
-	const transcript2 = new Uint8Array(n8r);
-	Fr.toRprBE(transcript2, 0, res.beta);
-	res.gamma = await hashToFr(curve, transcript2);
+	res.beta = transcript.squeezeChallenge();
 
-	const transcript3 = new Uint8Array(G1.F.n8 * 2);
-	G1.toRprUncompressed(transcript3, 0, proof.Z);
-	res.alpha = await hashToFr(curve, transcript3);
+	// const transcript2 = new Uint8Array(n8r);
+	// Fr.toRprBE(transcript2, 0, res.beta);
+	transcript.writeScalar(res.beta);
+	res.gamma = transcript.squeezeChallenge();
 
-	const transcript4 = new Uint8Array(G1.F.n8 * 2 * 3);
-	G1.toRprUncompressed(transcript4, 0, proof.T1);
-	G1.toRprUncompressed(transcript4, G1.F.n8 * 2, proof.T2);
-	G1.toRprUncompressed(transcript4, G1.F.n8 * 4, proof.T3);
-	res.xi = await hashToFr(curve, transcript4);
+	// const transcript3 = new Uint8Array(G1.F.n8 * 2);
+	// G1.toRprUncompressed(transcript3, 0, proof.Z);
+	transcript.writePoint(proof.Z);
+	res.alpha = transcript.squeezeChallenge();
 
-	const transcript5 = new Uint8Array(n8r * 7);
-	Fr.toRprBE(transcript5, 0, proof.eval_a);
-	Fr.toRprBE(transcript5, n8r, proof.eval_b);
-	Fr.toRprBE(transcript5, n8r * 2, proof.eval_c);
-	Fr.toRprBE(transcript5, n8r * 3, proof.eval_s1);
-	Fr.toRprBE(transcript5, n8r * 4, proof.eval_s2);
-	Fr.toRprBE(transcript5, n8r * 5, proof.eval_zw);
-	Fr.toRprBE(transcript5, n8r * 6, proof.eval_r);
+	// const transcript4 = new Uint8Array(G1.F.n8 * 2 * 3);
+	// G1.toRprUncompressed(transcript4, 0, proof.T1);
+	// G1.toRprUncompressed(transcript4, G1.F.n8 * 2, proof.T2);
+	// G1.toRprUncompressed(transcript4, G1.F.n8 * 4, proof.T3);
+	transcript.writePoint(proof.T1);
+	transcript.writePoint(proof.T2);
+	transcript.writePoint(proof.T3);
+	res.xi = transcript.squeezeChallenge();
+
+	// const transcript5 = new Uint8Array(n8r * 7);
+	// Fr.toRprBE(transcript5, 0, proof.eval_a);
+	// Fr.toRprBE(transcript5, n8r, proof.eval_b);
+	// Fr.toRprBE(transcript5, n8r * 2, proof.eval_c);
+	// Fr.toRprBE(transcript5, n8r * 3, proof.eval_s1);
+	// Fr.toRprBE(transcript5, n8r * 4, proof.eval_s2);
+	// Fr.toRprBE(transcript5, n8r * 5, proof.eval_zw);
+	// Fr.toRprBE(transcript5, n8r * 6, proof.eval_r);
+	transcript.writeScalar(proof.eval_a);
+	transcript.writeScalar(proof.eval_b);
+	transcript.writeScalar(proof.eval_c);
+	transcript.writeScalar(proof.eval_s1);
+	transcript.writeScalar(proof.eval_s2);
+	transcript.writeScalar(proof.eval_zw);
+	transcript.writeScalar(proof.eval_r);
 	res.v = [];
-	res.v[1] = await hashToFr(curve, transcript5);
+	res.v[1] = transcript.squeezeChallenge();
 
 	for (let i = 2; i <= 6; i++) res.v[i] = Fr.mul(res.v[i - 1], res.v[1]);
 
-	const transcript6 = new Uint8Array(G1.F.n8 * 2 * 2);
-	G1.toRprUncompressed(transcript6, 0, proof.Wxi);
-	G1.toRprUncompressed(transcript6, G1.F.n8 * 2, proof.Wxiw);
-	res.u = await hashToFr(curve, transcript6);
+	// const transcript6 = new Uint8Array(G1.F.n8 * 2 * 2);
+	// G1.toRprUncompressed(transcript6, 0, proof.Wxi);
+	// G1.toRprUncompressed(transcript6, G1.F.n8 * 2, proof.Wxiw);
+	transcript.writePoint(proof.Wxi);
+	transcript.writePoint(proof.Wxiw);
+	res.u = transcript.squeezeChallenge();
 
 	return res;
 }
@@ -264,39 +291,12 @@ function calculateLagrangeEvaluations(curve, challanges, vk) {
 	return L;
 }
 
-async function poseidonHash(arr) {
-	let poseidon = await buildPoseidon();
-
-	let poseidonInputCount = 16;
-	let fieldSize = 32;
-
-	let noOfInputs = arr.byteLength / fieldSize;
-	if (noOfInputs * fieldSize != arr.byteLength)
-		throw new Error("transcript contains non-native field element");
-
-	let output;
-	for (let i = 0; i < noOfInputs; i++) {
-		let inputArr = new Uint8Array(poseidonInputCount * fieldSize);
-		inputArr.set(
-			arr.slice(
-				poseidonInputCount * fieldSize * i,
-				poseidonInputCount * fieldSize * (i + 1)
-			),
-			0
-		);
-		output = poseidon(inputArr, output, 1);
-	}
-
-	return output;
-}
-
-async function hashToFr(curve, transcript) {
-	return curve.Fr.e(await poseidonHash(transcript));
-	const v = Scalar.fromRprBE(
-		new Uint8Array(keccak256.arrayBuffer(transcript))
-	);
-	return curve.Fr.e(v);
-}
+// async function hashToFr(curve, transcript) {
+// 	const v = Scalar.fromRprBE(
+// 		new Uint8Array(keccak256.arrayBuffer(transcript))
+// 	);
+// 	return curve.Fr.e(v);
+// }
 
 function calculatePl(curve, publicSignals, L) {
 	const Fr = curve.Fr;

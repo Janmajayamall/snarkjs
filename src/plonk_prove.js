@@ -22,44 +22,14 @@
 import * as binFileUtils from "@iden3/binfileutils";
 import * as zkeyUtils from "./zkey_utils.js";
 import * as wtnsUtils from "./wtns_utils.js";
-import { getCurveFromQ as getCurve } from "./curves.js";
 import { Scalar, utils, BigBuffer } from "ffjavascript";
 const { stringifyBigInts } = utils;
-import jsSha3 from "js-sha3";
-const { keccak256 } = jsSha3;
-import { buildPoseidon } from "circomlibjs";
-
+import { Transcript } from "./poseidon_transcript.js";
 export default async function plonk16Prove(
 	zkeyFileName,
 	witnessFileName,
 	logger
 ) {
-	async function poseidonHash(arr) {
-		let poseidon = await buildPoseidon();
-
-		let poseidonInputCount = 16;
-		let fieldSize = 32;
-
-		let noOfInputs = arr.byteLength / fieldSize;
-		if (noOfInputs * fieldSize != arr.byteLength)
-			throw new Error("transcript contains non-native field element");
-
-		let output;
-		for (let i = 0; i < noOfInputs; i++) {
-			let inputArr = new Uint8Array(poseidonInputCount * fieldSize);
-			inputArr.set(
-				arr.slice(
-					poseidonInputCount * fieldSize * i,
-					poseidonInputCount * fieldSize * (i + 1)
-				),
-				0
-			);
-			output = poseidon(inputArr, output, 1);
-		}
-
-		return output;
-	}
-
 	const { fd: fdWtns, sections: sectionsWtns } =
 		await binFileUtils.readBinFile(
 			witnessFileName,
@@ -153,6 +123,13 @@ export default async function plonk16Prove(
 	const PTau = await binFileUtils.readSection(fdZKey, sectionsZKey, 14);
 
 	const ch = {};
+
+	// instantiate Transcript
+	let transcript = new Transcript(
+		`${process.cwd()}/src/poseidon_spec.json`,
+		curve
+	);
+	await transcript.load();
 
 	await round1();
 	await round2();
@@ -296,30 +273,38 @@ export default async function plonk16Prove(
 	}
 
 	async function round2() {
-		const transcript1 = new Uint8Array(
-			zkey.nPublic * n8r + G1.F.n8 * 2 * 3
-		);
-		for (let i = 0; i < zkey.nPublic; i++) {
-			Fr.toRprBE(transcript1, i * n8r, A.slice(i * n8r, (i + 1) * n8r));
-		}
-		G1.toRprUncompressed(transcript1, zkey.nPublic * n8r + 0, proof.A);
-		G1.toRprUncompressed(
-			transcript1,
-			zkey.nPublic * n8r + G1.F.n8 * 2,
-			proof.B
-		);
-		G1.toRprUncompressed(
-			transcript1,
-			zkey.nPublic * n8r + G1.F.n8 * 4,
-			proof.C
-		);
+		// const transcript1 = new Uint8Array(
+		// 	zkey.nPublic * n8r + G1.F.n8 * 2 * 3
+		// );
 
-		ch.beta = await hashToFr(transcript1);
+		for (let i = 0; i < zkey.nPublic; i++) {
+			transcript.writeScalar(A.slice(i * n8r, (i + 1) * n8r));
+			// Fr.toRprBE(transcript1, i * n8r, A.slice(i * n8r, (i + 1) * n8r));
+		}
+
+		transcript.writePoint(proof.A);
+		transcript.writePoint(proof.B);
+		transcript.writePoint(proof.C);
+
+		// G1.toRprUncompressed(transcript1, zkey.nPublic * n8r + 0, proof.A);
+		// G1.toRprUncompressed(
+		// 	transcript1,
+		// 	zkey.nPublic * n8r + G1.F.n8 * 2,
+		// 	proof.B
+		// );
+		// G1.toRprUncompressed(
+		// 	transcript1,
+		// 	zkey.nPublic * n8r + G1.F.n8 * 4,
+		// 	proof.C
+		// );
+
+		ch.beta = transcript.squeezeChallenge();
 		if (logger) logger.debug("beta: " + Fr.toString(ch.beta));
 
-		const transcript2 = new Uint8Array(n8r);
-		Fr.toRprBE(transcript2, 0, ch.beta);
-		ch.gamma = await hashToFr(transcript2);
+		// const transcript2 = new Uint8Array(n8r);
+		// Fr.toRprBE(transcript2, 0, ch.beta);
+		transcript.writeScalar(ch.beta);
+		ch.gamma = transcript.squeezeChallenge();
 		if (logger) logger.debug("gamma: " + Fr.toString(ch.gamma));
 
 		let numArr = new BigBuffer(Fr.n8 * zkey.domainSize);
@@ -482,10 +467,11 @@ export default async function plonk16Prove(
 
 		const lPols = await binFileUtils.readSection(fdZKey, sectionsZKey, 13);
 
-		const transcript3 = new Uint8Array(G1.F.n8 * 2);
-		G1.toRprUncompressed(transcript3, 0, proof.Z);
+		// const transcript3 = new Uint8Array(G1.F.n8 * 2);
+		// G1.toRprUncompressed(transcript3, 0, proof.Z);
+		transcript.writePoint(proof.Z);
 
-		ch.alpha = await hashToFr(transcript3);
+		ch.alpha = transcript.squeezeChallenge();
 
 		if (logger) logger.debug("alpha: " + Fr.toString(ch.alpha));
 
@@ -853,11 +839,14 @@ export default async function plonk16Prove(
 			sectionsZKey[12][0].p + 10 * zkey.domainSize * n8r
 		);
 
-		const transcript4 = new Uint8Array(G1.F.n8 * 2 * 3);
-		G1.toRprUncompressed(transcript4, 0, proof.T1);
-		G1.toRprUncompressed(transcript4, G1.F.n8 * 2, proof.T2);
-		G1.toRprUncompressed(transcript4, G1.F.n8 * 4, proof.T3);
-		ch.xi = await hashToFr(transcript4);
+		transcript.writePoint(proof.T1);
+		transcript.writePoint(proof.T2);
+		transcript.writePoint(proof.T3);
+		// const transcript4 = new Uint8Array(G1.F.n8 * 2 * 3);
+		// G1.toRprUncompressed(transcript4, 0, proof.T1);
+		// G1.toRprUncompressed(transcript4, G1.F.n8 * 2, proof.T2);
+		// G1.toRprUncompressed(transcript4, G1.F.n8 * 4, proof.T3);
+		ch.xi = transcript.squeezeChallenge();
 
 		if (logger) logger.debug("xi: " + Fr.toString(ch.xi));
 
@@ -945,16 +934,23 @@ export default async function plonk16Prove(
 	}
 
 	async function round5() {
-		const transcript5 = new Uint8Array(n8r * 7);
-		Fr.toRprBE(transcript5, 0, proof.eval_a);
-		Fr.toRprBE(transcript5, n8r, proof.eval_b);
-		Fr.toRprBE(transcript5, n8r * 2, proof.eval_c);
-		Fr.toRprBE(transcript5, n8r * 3, proof.eval_s1);
-		Fr.toRprBE(transcript5, n8r * 4, proof.eval_s2);
-		Fr.toRprBE(transcript5, n8r * 5, proof.eval_zw);
-		Fr.toRprBE(transcript5, n8r * 6, proof.eval_r);
+		transcript.writeScalar(proof.eval_a);
+		transcript.writeScalar(proof.eval_b);
+		transcript.writeScalar(proof.eval_c);
+		transcript.writeScalar(proof.eval_s1);
+		transcript.writeScalar(proof.eval_s2);
+		transcript.writeScalar(proof.eval_zw);
+		transcript.writeScalar(proof.eval_r);
+		// const transcript5 = new Uint8Array(n8r * 7);
+		// Fr.toRprBE(transcript5, 0, proof.eval_a);
+		// Fr.toRprBE(transcript5, n8r, proof.eval_b);
+		// Fr.toRprBE(transcript5, n8r * 2, proof.eval_c);
+		// Fr.toRprBE(transcript5, n8r * 3, proof.eval_s1);
+		// Fr.toRprBE(transcript5, n8r * 4, proof.eval_s2);
+		// Fr.toRprBE(transcript5, n8r * 5, proof.eval_zw);
+		// Fr.toRprBE(transcript5, n8r * 6, proof.eval_r);
 		ch.v = [];
-		ch.v[1] = await hashToFr(transcript5);
+		ch.v[1] = transcript.squeezeChallenge();
 		if (logger) logger.debug("v: " + Fr.toString(ch.v[1]));
 
 		for (let i = 2; i <= 6; i++) ch.v[i] = Fr.mul(ch.v[i - 1], ch.v[1]);
@@ -1057,13 +1053,12 @@ export default async function plonk16Prove(
 		proof.Wxiw = await expTau(pol_wxiw, "multiexp Wxiw");
 	}
 
-	async function hashToFr(transcript) {
-		return Fr.e(await poseidonHash(transcript));
-		const v = Scalar.fromRprBE(
-			new Uint8Array(keccak256.arrayBuffer(transcript))
-		);
-		return Fr.e(v);
-	}
+	// async function hashToFr(transcript) {
+	// 	const v = Scalar.fromRprBE(
+	// 		new Uint8Array(keccak256.arrayBuffer(transcript))
+	// 	);
+	// 	return Fr.e(v);
+	// }
 
 	function evalPol(P, x) {
 		const n = P.byteLength / n8r;

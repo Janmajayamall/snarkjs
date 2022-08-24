@@ -152,13 +152,13 @@ describe("Full process", function () {
 	// 	vKey = await snarkjs.zKey.exportVerificationKey(zkey_final);
 	// });
 
-	// it("witness calculate", async () => {
-	// 	await snarkjs.wtns.calculate(
-	// 		{ a: 11, b: 2 },
-	// 		path.join("test", "circuit", "circuit.wasm"),
-	// 		wtns
-	// 	);
-	// });
+	it("witness calculate", async () => {
+		await snarkjs.wtns.calculate(
+			{ a: 11, b: 2 },
+			path.join("test", "circuit", "circuit.wasm"),
+			wtns
+		);
+	});
 
 	// it("groth16 proof", async () => {
 	// 	const res = await snarkjs.groth16.prove(zkey_final, wtns);
@@ -175,27 +175,28 @@ describe("Full process", function () {
 		await snarkjs.plonk.setup(
 			path.join("test", "circuit", "circuit.r1cs"),
 			ptau_final,
-			zkey_plonk
+			zkey_plonk,
+			logger
 		);
 	});
 
-	// it("zkey export verificationkey", async () => {
-	// 	vKey = await snarkjs.zKey.exportVerificationKey(zkey_plonk);
-	// });
+	it("zkey export verificationkey", async () => {
+		vKey = await snarkjs.zKey.exportVerificationKey(zkey_plonk);
+	});
 
-	// it("plonk proof", async () => {
-	// 	const res = await snarkjs.plonk.prove(zkey_plonk, wtns, logger);
-	// 	proof = res.proof;
-	// 	publicSignals = res.publicSignals;
-	// });
+	it("plonk proof", async () => {
+		const res = await snarkjs.plonk.prove(zkey_plonk, wtns, logger);
+		proof = res.proof;
+		publicSignals = res.publicSignals;
+	});
 
-	// it("plonk verify", async () => {
-	// 	const res = await snarkjs.plonk.verify(
-	// 		vKey,
-	// 		publicSignals,
-	// 		proof,
-	// 		logger
-	// 	);
-	// 	assert(res == true);
-	// });
+	it("plonk verify", async () => {
+		const res = await snarkjs.plonk.verify(
+			vKey,
+			publicSignals,
+			proof,
+			logger
+		);
+		assert(res == true);
+	});
 });

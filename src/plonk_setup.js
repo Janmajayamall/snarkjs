@@ -219,15 +219,12 @@ export default async function plonkSetup(r1csName, ptauName, zkeyName, logger) {
 			};
 			// number of wires
 			const nA = r1cs_readULE32();
-			console.log(`nA: ${nA}`);
 
 			for (let i = 0; i < nA; i++) {
 				// wireid
 				const s = r1cs_readULE32();
 				// coefficient
 				const coefp = r1cs_readCoef();
-
-				console.log(`s: ${s}, ceofp: ${coefp}`);
 
 				if (s == 0) {
 					res.k = coefp;
@@ -288,13 +285,10 @@ export default async function plonkSetup(r1csName, ptauName, zkeyName, logger) {
 				logger.debug(
 					`processing constraints: ${c}/${r1cs.nConstraints}`
 				);
-			console.log(`Constraint: ${c}`);
 
 			const A = r1cs_readCoefs();
 			const B = r1cs_readCoefs();
 			const C = r1cs_readCoefs();
-
-			console.log(`Constraint: ${c} end`);
 
 			const sl = A.s;
 			const sr = B.s;
