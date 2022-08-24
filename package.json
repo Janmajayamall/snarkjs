@@ -48,6 +48,7 @@
     "ffjavascript": "0.2.55",
     "js-sha3": "^0.8.0",
     "logplease": "^1.2.15",
+    "poseidon-js": "^0.1.0",
     "r1csfile": "0.0.36"
   },
   "devDependencies": {
