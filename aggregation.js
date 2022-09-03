@@ -102,9 +102,33 @@ async function main() {
 	console.log("IsValid:", isValid);
 }
 
-main()
+async function verifyOnly() {
+	let filePath = `${process.cwd()}/tmp/`;
+	let curve = await curves.getCurveFromName("bn128");
+
+	// verify proof
+	let vKey = JSON.parse(
+		fs.readFileSync(`${filePath}verification_key.json`, "utf8")
+	);
+	let publicSignals = JSON.parse(
+		fs.readFileSync(`${filePath}public.json`, "utf8")
+	);
+	let proof = JSON.parse(fs.readFileSync(`${filePath}proof.json`, "utf8"));
+	const isValid = await plonk.verify(vKey, publicSignals, proof, logger);
+	console.log("IsValid:", isValid);
+}
+
+// main()
+// 	.then(() => {
+// 		process.exit();
+// 	})
+// 	.catch((e) => {
+// 		console.log("Error: ", e);
+// 		process.exit();
+// 	});
+
+verifyOnly()
 	.then(() => {
-		console.log("works");
 		process.exit();
 	})
 	.catch((e) => {

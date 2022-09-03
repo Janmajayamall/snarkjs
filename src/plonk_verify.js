@@ -23,7 +23,6 @@ import * as curves from "./curves.js";
 import { utils } from "ffjavascript";
 const { unstringifyBigInts } = utils;
 import jsSha3 from "js-sha3";
-import { buildPoseidon } from "circomlibjs";
 const { keccak256 } = jsSha3;
 import { Transcript } from "./poseidon_transcript.js";
 
@@ -59,6 +58,7 @@ export default async function plonkVerify(
 		logger.debug("alpha: " + Fr.toString(challanges.alpha, 16));
 		logger.debug("xi: " + Fr.toString(challanges.xi, 16));
 		logger.debug("v1: " + Fr.toString(challanges.v[1], 16));
+		logger.debug("v5: " + Fr.toString(challanges.v[5], 16));
 		logger.debug("v6: " + Fr.toString(challanges.v[6], 16));
 		logger.debug("u: " + Fr.toString(challanges.u, 16));
 	}
@@ -140,6 +140,17 @@ function fromObjectProof(curve, proof) {
 	res.eval_r = Fr.fromObject(proof.eval_r);
 	res.Wxi = G1.fromObject(proof.Wxi);
 	res.Wxiw = G1.fromObject(proof.Wxiw);
+
+	// console.log(`A: ${G1.toString(G1.toAffine(res.A), 16)}`);
+	// console.log(`B: ${G1.toString(G1.toAffine(res.B), 16)}`);
+	// console.log(`C: ${G1.toString(G1.toAffine(res.C), 16)}`);
+	// console.log(`Z: ${G1.toString(G1.toAffine(res.Z), 16)}`);
+	// console.log(`T1: ${G1.toString(G1.toAffine(res.T1), 16)}`);
+	// console.log(`T2: ${G1.toString(G1.toAffine(res.T2), 16)}`);
+	// console.log(`T3: ${G1.toString(G1.toAffine(res.T3), 16)}`);
+	// console.log(`Wxi: ${G1.toString(G1.toAffine(res.Wxi), 16)}`);
+	// console.log(`Wxiw: ${G1.toString(G1.toAffine(res.Wxiw), 16)}`);
+
 	return res;
 }
 
@@ -194,12 +205,13 @@ async function calculateChallanges(curve, proof, publicSignals) {
 	// 	publicSignals.length * n8r + G1.F.n8 * 2 * 3
 	// );
 	for (let i = 0; i < publicSignals.length; i++) {
-		transcript.writeScalar(Fr.e(publicSignals[i]));
+		transcript.writeScalar(Fr.e(publicSignals[i]), `pi ${i}`);
 		// Fr.toRprBE(transcript1, i * n8r, Fr.e(publicSignals[i]));
 	}
-	transcript.writePoint(proof.A);
-	transcript.writePoint(proof.B);
-	transcript.writePoint(proof.C);
+
+	transcript.writePoint(proof.A, "A");
+	transcript.writePoint(proof.B, "B");
+	transcript.writePoint(proof.C, "C");
 
 	// G1.toRprUncompressed(transcript1, publicSignals.length * n8r + 0, proof.A);
 	// G1.toRprUncompressed(
@@ -217,21 +229,21 @@ async function calculateChallanges(curve, proof, publicSignals) {
 
 	// const transcript2 = new Uint8Array(n8r);
 	// Fr.toRprBE(transcript2, 0, res.beta);
-	transcript.writeScalar(res.beta);
+	transcript.writeScalar(res.beta, "beta");
 	res.gamma = transcript.squeezeChallenge();
 
 	// const transcript3 = new Uint8Array(G1.F.n8 * 2);
 	// G1.toRprUncompressed(transcript3, 0, proof.Z);
-	transcript.writePoint(proof.Z);
+	transcript.writePoint(proof.Z, "Z");
 	res.alpha = transcript.squeezeChallenge();
 
 	// const transcript4 = new Uint8Array(G1.F.n8 * 2 * 3);
 	// G1.toRprUncompressed(transcript4, 0, proof.T1);
 	// G1.toRprUncompressed(transcript4, G1.F.n8 * 2, proof.T2);
 	// G1.toRprUncompressed(transcript4, G1.F.n8 * 4, proof.T3);
-	transcript.writePoint(proof.T1);
-	transcript.writePoint(proof.T2);
-	transcript.writePoint(proof.T3);
+	transcript.writePoint(proof.T1, "T1");
+	transcript.writePoint(proof.T2, "T2");
+	transcript.writePoint(proof.T3, "T3");
 	res.xi = transcript.squeezeChallenge();
 
 	// const transcript5 = new Uint8Array(n8r * 7);
@@ -242,13 +254,13 @@ async function calculateChallanges(curve, proof, publicSignals) {
 	// Fr.toRprBE(transcript5, n8r * 4, proof.eval_s2);
 	// Fr.toRprBE(transcript5, n8r * 5, proof.eval_zw);
 	// Fr.toRprBE(transcript5, n8r * 6, proof.eval_r);
-	transcript.writeScalar(proof.eval_a);
-	transcript.writeScalar(proof.eval_b);
-	transcript.writeScalar(proof.eval_c);
-	transcript.writeScalar(proof.eval_s1);
-	transcript.writeScalar(proof.eval_s2);
-	transcript.writeScalar(proof.eval_zw);
-	transcript.writeScalar(proof.eval_r);
+	transcript.writeScalar(proof.eval_a, "eval_a");
+	transcript.writeScalar(proof.eval_b, "eval_b");
+	transcript.writeScalar(proof.eval_c, "eval_c");
+	transcript.writeScalar(proof.eval_s1, "eval_s1");
+	transcript.writeScalar(proof.eval_s2, "eval_s2");
+	transcript.writeScalar(proof.eval_zw, "eval_zw");
+	transcript.writeScalar(proof.eval_r, "eval_r");
 	res.v = [];
 	res.v[1] = transcript.squeezeChallenge();
 
@@ -257,8 +269,8 @@ async function calculateChallanges(curve, proof, publicSignals) {
 	// const transcript6 = new Uint8Array(G1.F.n8 * 2 * 2);
 	// G1.toRprUncompressed(transcript6, 0, proof.Wxi);
 	// G1.toRprUncompressed(transcript6, G1.F.n8 * 2, proof.Wxiw);
-	transcript.writePoint(proof.Wxi);
-	transcript.writePoint(proof.Wxiw);
+	transcript.writePoint(proof.Wxi, "Wxi");
+	transcript.writePoint(proof.Wxiw, "Wxiw");
 	res.u = transcript.squeezeChallenge();
 
 	return res;

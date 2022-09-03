@@ -278,13 +278,13 @@ export default async function plonk16Prove(
 		// );
 
 		for (let i = 0; i < zkey.nPublic; i++) {
-			transcript.writeScalar(A.slice(i * n8r, (i + 1) * n8r));
+			transcript.writeScalar(A.slice(i * n8r, (i + 1) * n8r), `pi ${i}`);
 			// Fr.toRprBE(transcript1, i * n8r, A.slice(i * n8r, (i + 1) * n8r));
 		}
 
-		transcript.writePoint(proof.A);
-		transcript.writePoint(proof.B);
-		transcript.writePoint(proof.C);
+		transcript.writePoint(proof.A, "A");
+		transcript.writePoint(proof.B, "B");
+		transcript.writePoint(proof.C, "C");
 
 		// G1.toRprUncompressed(transcript1, zkey.nPublic * n8r + 0, proof.A);
 		// G1.toRprUncompressed(
@@ -303,7 +303,7 @@ export default async function plonk16Prove(
 
 		// const transcript2 = new Uint8Array(n8r);
 		// Fr.toRprBE(transcript2, 0, ch.beta);
-		transcript.writeScalar(ch.beta);
+		transcript.writeScalar(ch.beta, "beta");
 		ch.gamma = transcript.squeezeChallenge();
 		if (logger) logger.debug("gamma: " + Fr.toString(ch.gamma));
 
@@ -469,7 +469,7 @@ export default async function plonk16Prove(
 
 		// const transcript3 = new Uint8Array(G1.F.n8 * 2);
 		// G1.toRprUncompressed(transcript3, 0, proof.Z);
-		transcript.writePoint(proof.Z);
+		transcript.writePoint(proof.Z, "Z");
 
 		ch.alpha = transcript.squeezeChallenge();
 
@@ -839,9 +839,9 @@ export default async function plonk16Prove(
 			sectionsZKey[12][0].p + 10 * zkey.domainSize * n8r
 		);
 
-		transcript.writePoint(proof.T1);
-		transcript.writePoint(proof.T2);
-		transcript.writePoint(proof.T3);
+		transcript.writePoint(proof.T1, "T1");
+		transcript.writePoint(proof.T2, "T2");
+		transcript.writePoint(proof.T3, "T3");
 		// const transcript4 = new Uint8Array(G1.F.n8 * 2 * 3);
 		// G1.toRprUncompressed(transcript4, 0, proof.T1);
 		// G1.toRprUncompressed(transcript4, G1.F.n8 * 2, proof.T2);
@@ -934,13 +934,13 @@ export default async function plonk16Prove(
 	}
 
 	async function round5() {
-		transcript.writeScalar(proof.eval_a);
-		transcript.writeScalar(proof.eval_b);
-		transcript.writeScalar(proof.eval_c);
-		transcript.writeScalar(proof.eval_s1);
-		transcript.writeScalar(proof.eval_s2);
-		transcript.writeScalar(proof.eval_zw);
-		transcript.writeScalar(proof.eval_r);
+		transcript.writeScalar(proof.eval_a, "eval_a");
+		transcript.writeScalar(proof.eval_b, "eval_b");
+		transcript.writeScalar(proof.eval_c, "eval_c");
+		transcript.writeScalar(proof.eval_s1, "eval_s1");
+		transcript.writeScalar(proof.eval_s2, "eval_s2");
+		transcript.writeScalar(proof.eval_zw, "eval_zw");
+		transcript.writeScalar(proof.eval_r, "eval_r");
 		// const transcript5 = new Uint8Array(n8r * 7);
 		// Fr.toRprBE(transcript5, 0, proof.eval_a);
 		// Fr.toRprBE(transcript5, n8r, proof.eval_b);
