@@ -19,7 +19,7 @@ export class Transcript {
 
 	// Scalar is a Field element in field Fr
 	writeScalar(scalar, tag) {
-		console.log(`Writing scalar ${tag}: ${this.Fr.toString(scalar, 16)}`);
+		// console.log(`Writing scalar ${tag}: ${this.Fr.toString(scalar, 16)}`);
 		this.poseidon.update([scalar]);
 	}
 
