@@ -118,16 +118,7 @@ async function verifyOnly() {
 	console.log("IsValid:", isValid);
 }
 
-// main()
-// 	.then(() => {
-// 		process.exit();
-// 	})
-// 	.catch((e) => {
-// 		console.log("Error: ", e);
-// 		process.exit();
-// 	});
-
-verifyOnly()
+main()
 	.then(() => {
 		process.exit();
 	})
@@ -135,3 +126,12 @@ verifyOnly()
 		console.log("Error: ", e);
 		process.exit();
 	});
+
+// verifyOnly()
+// 	.then(() => {
+// 		process.exit();
+// 	})
+// 	.catch((e) => {
+// 		console.log("Error: ", e);
+// 		process.exit();
+// 	});

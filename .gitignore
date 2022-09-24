@@ -64,6 +64,9 @@ typings/
 .next
 
 tmp
+inputs
+output
+
 
 .DS_Store
 stats.html
