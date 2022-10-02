@@ -7679,6 +7679,20 @@ async function plonk16Prove(
 	}
 }
 
+async function plonk16ProveAgg(zkeyFileName, witnessDir, count, logger) {
+	let outputs = [];
+	for (let index = 0; index < count; index++) {
+		outputs.push(
+			await plonk16Prove(
+				zkeyFileName,
+				`${witnessDir}/witness${index + 1}.wtns`
+			)
+		);
+	}
+	return outputs;
+}
+Footer;
+
 /*
     Copyright 2021 0KIMS association.
 
@@ -7697,16 +7711,37 @@ async function plonk16Prove(
     You should have received a copy of the GNU General Public License
     along with snarkJS. If not, see <https://www.gnu.org/licenses/>.
 */
-const {unstringifyBigInts: unstringifyBigInts$2} = ffjavascript.utils;
+const { unstringifyBigInts: unstringifyBigInts$2 } = ffjavascript.utils;
 
-async function plonkFullProve(_input, wasmFile, zkeyFileName, logger) {
-    const input = unstringifyBigInts$2(_input);
+async function plonkFullProve(
+	_input,
+	wasmFile,
+	zkeyFileName,
+	logger
+) {
+	const input = unstringifyBigInts$2(_input);
 
-    const wtns= {
-        type: "mem"
-    };
-    await wtnsCalculate(input, wasmFile, wtns);
-    return await plonk16Prove(zkeyFileName, wtns, logger);
+	const wtns = {
+		type: "mem",
+	};
+	await wtnsCalculate(input, wasmFile, wtns);
+	return await plonk16Prove(zkeyFileName, wtns, logger);
+}
+
+async function plonkFullProveAgg(
+	_inputs,
+	wasmFile,
+	zkeyFileName,
+	count,
+	logger
+) {
+	let outputs = [];
+	for (let index = 0; index < count; index++) {
+		outputs.push(
+			await plonkFullProve(_inputs[index], wasmFile, zkeyFileName, logger)
+		);
+	}
+	return outputs;
 }
 
 /*
@@ -8259,7 +8294,9 @@ var plonk = /*#__PURE__*/Object.freeze({
     __proto__: null,
     setup: plonkSetup,
     fullProve: plonkFullProve,
+    fullProveAgg: plonkFullProveAgg,
     prove: plonk16Prove,
+    proveAgg: plonk16ProveAgg,
     verify: plonkVerify,
     exportSolidityCallData: plonkExportSolidityCallData
 });

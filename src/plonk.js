@@ -17,8 +17,14 @@
     along with snarkJS. If not, see <https://www.gnu.org/licenses/>.
 */
 
-export {default as setup} from "./plonk_setup.js";
-export {default as fullProve} from "./plonk_fullprove.js";
-export {default as prove} from "./plonk_prove.js";
-export {default as verify} from "./plonk_verify.js";
-export {default as exportSolidityCallData} from "./plonk_exportsoliditycalldata.js";
+export { default as setup } from "./plonk_setup.js";
+export {
+	default as fullProve,
+	plonkFullProveAgg as fullProveAgg,
+} from "./plonk_fullprove.js";
+export {
+	default as prove,
+	plonk16ProveAgg as proveAgg,
+} from "./plonk_prove.js";
+export { default as verify } from "./plonk_verify.js";
+export { default as exportSolidityCallData } from "./plonk_exportsoliditycalldata.js";

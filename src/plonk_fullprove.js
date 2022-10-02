@@ -19,15 +19,36 @@
 
 import plonk_prove from "./plonk_prove.js";
 import wtns_calculate from "./wtns_calculate.js";
-import {utils} from 'ffjavascript';
-const {unstringifyBigInts} = utils;
+import { utils } from "ffjavascript";
+const { unstringifyBigInts } = utils;
 
-export default async function plonkFullProve(_input, wasmFile, zkeyFileName, logger) {
-    const input = unstringifyBigInts(_input);
+export default async function plonkFullProve(
+	_input,
+	wasmFile,
+	zkeyFileName,
+	logger
+) {
+	const input = unstringifyBigInts(_input);
 
-    const wtns= {
-        type: "mem"
-    };
-    await wtns_calculate(input, wasmFile, wtns);
-    return await plonk_prove(zkeyFileName, wtns, logger);
+	const wtns = {
+		type: "mem",
+	};
+	await wtns_calculate(input, wasmFile, wtns);
+	return await plonk_prove(zkeyFileName, wtns, logger);
+}
+
+export async function plonkFullProveAgg(
+	_inputs,
+	wasmFile,
+	zkeyFileName,
+	count,
+	logger
+) {
+	let outputs = [];
+	for (let index = 0; index < count; index++) {
+		outputs.push(
+			await plonkFullProve(_inputs[index], wasmFile, zkeyFileName, logger)
+		);
+	}
+	return outputs;
 }

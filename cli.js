@@ -304,6 +304,14 @@ const commands = [
 		action: plonkProve,
 	},
 	{
+		cmd: "plonk proveagg [circuit.zkey] [witnessDir] [outputDir] [count]",
+		description:
+			"Generates PLONK Proofs from witnesses inside witness directory",
+		alias: ["pkpagg"],
+		options: "-verbose|v -protocol",
+		action: plonkProveAgg,
+	},
+	{
 		cmd: "plonk fullprove [input.json] [circuit.wasm] [circuit.zkey] [proof.json] [public.json]",
 		description: "Generates a PLONK Proof from input",
 		alias: ["pkf"],
@@ -312,7 +320,8 @@ const commands = [
 	},
 	{
 		cmd: "plonk fullproveagg [inputDir] [circuit.wasm] [circuit.zkey] [outputDir] [count]",
-		description: "Generates a PLONK Proof files in for input files",
+		description:
+			"Generates PLONK Proofs from inputs inside input directory",
 		alias: ["pkfagg"],
 		options: "-verbose|v -protocol",
 		action: plonkFullProveAgg,
@@ -1146,6 +1155,37 @@ async function plonkProve(params, options) {
 	await bfj.write(proofName, stringifyBigInts(proof), { space: 1 });
 	await bfj.write(publicName, stringifyBigInts(publicSignals), { space: 1 });
 
+	return 0;
+}
+
+// plonk prove agg [circuit.zkey] [witnessDir] [outputDir] [count]
+async function plonkProveAgg(params, options) {
+	const zkeyName = params[0] || "circuit.zkey";
+	const witnessDir = params[1] || "witnesses";
+	const outputDir = params[2] || "outputs";
+	const count = parseInt(params[3]) || 1;
+
+	if (options.verbose) Logger.setLogLevel("DEBUG");
+
+	const outputs = await plonk.proveAgg(zkeyName, witnessDir, count, logger);
+
+	for (let index = 0; index < count; index++) {
+		const { proof, publicSignals } = outputs[index];
+		await bfj.write(
+			`outputDir/proof${index + 1}.json`,
+			stringifyBigInts(proof),
+			{
+				space: 1,
+			}
+		);
+		await bfj.write(
+			`outputDir/public${index + 1}.json`,
+			stringifyBigInts(publicSignals),
+			{
+				space: 1,
+			}
+		);
+	}
 	return 0;
 }
 

@@ -2,8 +2,11 @@ import * as snarkjs from "../main.js";
 import { getCurveFromName } from "../src/curves.js";
 import assert from "assert";
 import path from "path";
-
+import fs from "fs";
+import bfj from "bfj";
 import Logger from "logplease";
+import { utils } from "ffjavascript";
+const { stringifyBigInts } = utils;
 const logger = Logger.create("snarkJS", { showTimestamp: false });
 Logger.setLogLevel("DEBUG");
 
@@ -172,6 +175,7 @@ describe("Full process", function () {
 	// });
 
 	it("plonk setup", async () => {
+		console.log("Plonk setup zkey_plonk,", zkey_plonk);
 		await snarkjs.plonk.setup(
 			path.join("test", "circuit", "circuit.r1cs"),
 			ptau_final,
@@ -190,6 +194,21 @@ describe("Full process", function () {
 		publicSignals = res.publicSignals;
 	});
 
+	const aggCount = 2;
+	let aggOutputs = [];
+	it("plonk full proof aggregation", async () => {
+		aggOutputs = await snarkjs.plonk.fullProveAgg(
+			[
+				{ a: 1, b: 2 },
+				{ a: 12, b: 2 },
+			],
+			path.join("test", "circuit", "circuit.wasm"),
+			zkey_plonk,
+			aggCount,
+			logger
+		);
+	});
+
 	it("plonk verify", async () => {
 		const res = await snarkjs.plonk.verify(
 			vKey,
@@ -198,5 +217,32 @@ describe("Full process", function () {
 			logger
 		);
 		assert(res == true);
+	});
+
+	it("generate plonk aggregation output files", async () => {
+		await bfj.write(
+			path.join("test", "aggregation", `verification_key.json`),
+			stringifyBigInts(vKey),
+			{
+				space: 1,
+			}
+		);
+
+		for (let i = 0; i < aggCount; i++) {
+			const { proof, publicSignals } = aggOutputs[i];
+			await bfj.write(
+				path.join("test", "aggregation", `proof${i + 1}.json`),
+
+				stringifyBigInts(proof),
+				{ space: 1 }
+			);
+			await bfj.write(
+				path.join("test", "aggregation", `public${i + 1}.json`),
+				stringifyBigInts(publicSignals),
+				{
+					space: 1,
+				}
+			);
+		}
 	});
 });

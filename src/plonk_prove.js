@@ -1124,3 +1124,16 @@ export default async function plonk16Prove(
 		return [a1, A4];
 	}
 }
+
+export async function plonk16ProveAgg(zkeyFileName, witnessDir, count, logger) {
+	let outputs = [];
+	for (let index = 0; index < count; index++) {
+		outputs.push(
+			await plonk16Prove(
+				zkeyFileName,
+				`${witnessDir}/witness${index + 1}.wtns`
+			)
+		);
+	}
+	return outputs;
+}
