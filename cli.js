@@ -334,6 +334,13 @@ const commands = [
 		action: plonkVerify,
 	},
 	{
+		cmd: "plonk setupmaze [inputDir] [circuit.wasm] [circuit.zkey] [outputDir] [count]",
+		description: "Setup PLONK proofs for Maze tool",
+		alias: ["pksm"],
+		options: "-verbose|v",
+		action: plonkSetupMaze,
+	},
+	{
 		cmd: "file info [binary.file]",
 		description: "Check info of a binary file",
 		alias: ["fi"],
@@ -1276,6 +1283,67 @@ async function plonkVerify(params, options) {
 	} else {
 		return 1;
 	}
+}
+
+// plonk setup maze [inputDir] [circuit.wasm] [circuit.zkey] [outputDir] [count]
+async function plonkSetupMaze(params, options) {
+	const inputsDir = params[0] || "inputs";
+	const wasmName = params[1] || "circuit.wasm";
+	const zkeyName = params[2] || "circuit.zkey";
+	const outputDir = params[3] || "output";
+	let count = params[4] || 0;
+
+	try {
+		parseInt(count);
+	} catch {
+		console.error("Count value must be an integer!");
+	}
+	count = parseInt(count);
+	if (count == 0) {
+		console.error("Count value cannot be 0!");
+	}
+
+	if (options.verbose) Logger.setLogLevel("DEBUG");
+
+	for (let i = 0; i < count; i++) {
+		const input = JSON.parse(
+			await fs.promises.readFile(
+				`${inputsDir}/input${i + 1}.json`,
+				"utf8"
+			)
+		);
+
+		const { proof, publicSignals } = await plonk.fullProve(
+			input,
+			wasmName,
+			zkeyName,
+			logger
+		);
+
+		await bfj.write(
+			`${outputDir}/proof${i + 1}.json`,
+			stringifyBigInts(proof),
+			{ space: 1 }
+		);
+		await bfj.write(
+			`${outputDir}/public${i + 1}.json`,
+			stringifyBigInts(publicSignals),
+			{
+				space: 1,
+			}
+		);
+
+		const vKey = await zkey.exportVerificationKey(zkeyName);
+		await bfj.write(
+			`${outputDir}/verification_key.json`,
+			stringifyBigInts(vKey),
+			{
+				space: 1,
+			}
+		);
+	}
+
+	return 0;
 }
 
 async function fileInfo(params) {

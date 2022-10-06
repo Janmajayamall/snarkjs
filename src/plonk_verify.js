@@ -25,6 +25,7 @@ const { unstringifyBigInts } = utils;
 import jsSha3 from "js-sha3";
 const { keccak256 } = jsSha3;
 import { Transcript } from "./poseidon_transcript.js";
+import poseidon_spec from "./poseidon_spec.js";
 
 export default async function plonkVerify(
 	_vk_verifier,
@@ -195,11 +196,8 @@ async function calculateChallanges(curve, proof, publicSignals) {
 	const res = {};
 
 	// instantiate Transcript
-	let transcript = new Transcript(
-		`${process.cwd()}/src/poseidon_spec.json`,
-		curve
-	);
-	await transcript.load();
+	let transcript = new Transcript(poseidon_spec, curve);
+	transcript.load();
 
 	// const transcript1 = new Uint8Array(
 	// 	publicSignals.length * n8r + G1.F.n8 * 2 * 3

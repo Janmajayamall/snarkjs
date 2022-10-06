@@ -25,6 +25,7 @@ import * as wtnsUtils from "./wtns_utils.js";
 import { Scalar, utils, BigBuffer } from "ffjavascript";
 const { stringifyBigInts } = utils;
 import { Transcript } from "./poseidon_transcript.js";
+import poseidon_spec from "./poseidon_spec.js";
 export default async function plonk16Prove(
 	zkeyFileName,
 	witnessFileName,
@@ -125,11 +126,8 @@ export default async function plonk16Prove(
 	const ch = {};
 
 	// instantiate Transcript
-	let transcript = new Transcript(
-		`${process.cwd()}/src/poseidon_spec.json`,
-		curve
-	);
-	await transcript.load();
+	let transcript = new Transcript(poseidon_spec, curve);
+	transcript.load();
 
 	await round1();
 	await round2();

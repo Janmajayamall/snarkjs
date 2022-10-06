@@ -1,19 +1,19 @@
 import { Poseidon } from "poseidon-js";
 import { utils } from "ffjavascript";
 export class Transcript {
-	constructor(hasherSpecPath, curve) {
-		this.hasherSpecPath = hasherSpecPath;
+	constructor(rawJsonSpec, curve) {
+		this.rawJsonSpec = rawJsonSpec;
 		this.curve = curve;
 		this.Fr = curve.Fr;
 		this.F1 = curve.F1;
 		this.G1 = curve.G1;
 
 		// hasher
-		this.poseidon = new Poseidon(hasherSpecPath, this.curve);
+		this.poseidon = new Poseidon(rawJsonSpec, this.curve);
 	}
 
-	async load() {
-		await this.poseidon.parseSpec();
+	load() {
+		this.poseidon.parseSpec();
 		this.poseidon.loadState();
 	}
 

@@ -158,7 +158,7 @@ describe("Full process", function () {
 	it("witness calculate", async () => {
 		await snarkjs.wtns.calculate(
 			{ a: 11, b: 2 },
-			path.join("test", "circuit", "circuit.wasm"),
+			path.join("test", "circuit", "circuit_js", "circuit.wasm"),
 			wtns
 		);
 	});
@@ -175,7 +175,6 @@ describe("Full process", function () {
 	// });
 
 	it("plonk setup", async () => {
-		console.log("Plonk setup zkey_plonk,", zkey_plonk);
 		await snarkjs.plonk.setup(
 			path.join("test", "circuit", "circuit.r1cs"),
 			ptau_final,
@@ -202,7 +201,7 @@ describe("Full process", function () {
 				{ a: 1, b: 2 },
 				{ a: 12, b: 2 },
 			],
-			path.join("test", "circuit", "circuit.wasm"),
+			path.join("test", "circuit", "circuit_js", "circuit.wasm"),
 			zkey_plonk,
 			aggCount,
 			logger
