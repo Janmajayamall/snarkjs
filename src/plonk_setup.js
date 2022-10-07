@@ -48,6 +48,7 @@ export default async function plonkSetup(r1csName, ptauName, zkeyName, logger) {
 		1 << 22,
 		1 << 24
 	);
+
 	const { curve, power } = await utils.readPTauHeader(fdPTau, sectionsPTau);
 	const { fd: fdR1cs, sections: sectionsR1cs } = await readBinFile(
 		r1csName,
@@ -527,6 +528,10 @@ export default async function plonkSetup(r1csName, ptauName, zkeyName, logger) {
 		let bX_2;
 		bX_2 = await fdPTau.read(sG2, sectionsPTau[3][0].p + sG2);
 		await fdZKey.write(bX_2);
+
+		let bX_1;
+		bX_1 = await fdPTau.read(sG1, sectionsPTau[2][0].p + sG1);
+		await fdZKey.write(bX_1);
 
 		await endWriteSection(fdZKey);
 	}
