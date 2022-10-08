@@ -318,7 +318,7 @@ const commands = [
 		action: plonkVerify,
 	},
 	{
-		cmd: "plonk setup maze [inputs.json] [circuit.wasm] [circuit.zkey] [proofs.json] [public_signals.json] [verification_key.json]",
+		cmd: "plonk setupmaze [inputs.json] [circuit.wasm] [circuit.zkey] [proofs.json] [public_signals.json] [verification_key.json]",
 		description: "Setup PLONK proofs for Maze tool",
 		alias: ["pksm"],
 		options: "-verbose|v",
