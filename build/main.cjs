@@ -6544,7 +6544,7 @@ class Transcript {
 
 			v = BigInt(this.F1.toString(v, 10));
 			v = v % modFr;
-			return this.Fr.fromRprLE(ffjavascript.utils.leInt2Buff(v));
+			return this.Fr.fromRprLE(ffjavascript.utils.leInt2Buff(v, 32));
 		});
 
 		// console.log(`Writing point ${tag}: x=${x}, y=${y}`);

@@ -6587,7 +6587,7 @@ class Transcript {
 
 			v = BigInt(this.F1.toString(v, 10));
 			v = v % modFr;
-			return this.Fr.fromRprLE(ffjavascript.utils.leInt2Buff(v));
+			return this.Fr.fromRprLE(ffjavascript.utils.leInt2Buff(v, 32));
 		});
 
 		// console.log(`Writing point ${tag}: x=${x}, y=${y}`);
@@ -14100,7 +14100,7 @@ const commands = [
 		action: plonkVerify,
 	},
 	{
-		cmd: "plonk setup maze [inputs.json] [circuit.wasm] [circuit.zkey] [proofs.json] [public_signals.json] [verification_key.json]",
+		cmd: "plonk setupmaze [inputs.json] [circuit.wasm] [circuit.zkey] [proofs.json] [public_signals.json] [verification_key.json]",
 		description: "Setup PLONK proofs for Maze tool",
 		alias: ["pksm"],
 		options: "-verbose|v",
