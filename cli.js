@@ -304,27 +304,11 @@ const commands = [
 		action: plonkProve,
 	},
 	{
-		cmd: "plonk proveagg [circuit.zkey] [witnessDir] [outputDir] [count]",
-		description:
-			"Generates PLONK Proofs from witnesses inside witness directory",
-		alias: ["pkpagg"],
-		options: "-verbose|v -protocol",
-		action: plonkProveAgg,
-	},
-	{
 		cmd: "plonk fullprove [input.json] [circuit.wasm] [circuit.zkey] [proof.json] [public.json]",
 		description: "Generates a PLONK Proof from input",
 		alias: ["pkf"],
 		options: "-verbose|v -protocol",
 		action: plonkFullProve,
-	},
-	{
-		cmd: "plonk fullproveagg [inputDir] [circuit.wasm] [circuit.zkey] [outputDir] [count]",
-		description:
-			"Generates PLONK Proofs from inputs inside input directory",
-		alias: ["pkfagg"],
-		options: "-verbose|v -protocol",
-		action: plonkFullProveAgg,
 	},
 	{
 		cmd: "plonk verify [verification_key.json] [public.json] [proof.json]",
@@ -334,7 +318,7 @@ const commands = [
 		action: plonkVerify,
 	},
 	{
-		cmd: "plonk setupmaze [inputDir] [circuit.wasm] [circuit.zkey] [outputDir] [count]",
+		cmd: "plonk setup maze [inputs.json] [circuit.wasm] [circuit.zkey] [proofs.json] [public_signals.json] [verification_key.json]",
 		description: "Setup PLONK proofs for Maze tool",
 		alias: ["pksm"],
 		options: "-verbose|v",
@@ -1165,37 +1149,6 @@ async function plonkProve(params, options) {
 	return 0;
 }
 
-// plonk prove agg [circuit.zkey] [witnessDir] [outputDir] [count]
-async function plonkProveAgg(params, options) {
-	const zkeyName = params[0] || "circuit.zkey";
-	const witnessDir = params[1] || "witnesses";
-	const outputDir = params[2] || "outputs";
-	const count = parseInt(params[3]) || 1;
-
-	if (options.verbose) Logger.setLogLevel("DEBUG");
-
-	const outputs = await plonk.proveAgg(zkeyName, witnessDir, count, logger);
-
-	for (let index = 0; index < count; index++) {
-		const { proof, publicSignals } = outputs[index];
-		await bfj.write(
-			`outputDir/proof${index + 1}.json`,
-			stringifyBigInts(proof),
-			{
-				space: 1,
-			}
-		);
-		await bfj.write(
-			`outputDir/public${index + 1}.json`,
-			stringifyBigInts(publicSignals),
-			{
-				space: 1,
-			}
-		);
-	}
-	return 0;
-}
-
 // plonk fullprove [input.json] [circuit.wasm] [circuit.zkey] [proof.json] [public.json]
 async function plonkFullProve(params, options) {
 	const inputName = params[0] || "input.json";
@@ -1217,47 +1170,6 @@ async function plonkFullProve(params, options) {
 
 	await bfj.write(proofName, stringifyBigInts(proof), { space: 1 });
 	await bfj.write(publicName, stringifyBigInts(publicSignals), { space: 1 });
-
-	return 0;
-}
-
-async function plonkFullProveAgg(params, options) {
-	const inputsDir = params[0] || "inputs";
-	const wasmName = params[1] || "circuit.wasm";
-	const zkeyName = params[2] || "circuit.zkey";
-	const outputDir = params[3] || "output";
-	const count = parseInt(params[4]) || 1;
-
-	if (options.verbose) Logger.setLogLevel("DEBUG");
-
-	for (let i = 0; i < count; i++) {
-		const input = JSON.parse(
-			await fs.promises.readFile(
-				`${inputsDir}/input${i + 1}.json`,
-				"utf8"
-			)
-		);
-
-		const { proof, publicSignals } = await plonk.fullProve(
-			input,
-			wasmName,
-			zkeyName,
-			logger
-		);
-
-		await bfj.write(
-			`${outputDir}/proof${i + 1}.json`,
-			stringifyBigInts(proof),
-			{ space: 1 }
-		);
-		await bfj.write(
-			`${outputDir}/public${i + 1}.json`,
-			stringifyBigInts(publicSignals),
-			{
-				space: 1,
-			}
-		);
-	}
 
 	return 0;
 }
@@ -1285,63 +1197,49 @@ async function plonkVerify(params, options) {
 	}
 }
 
-// plonk setup maze [inputDir] [circuit.wasm] [circuit.zkey] [outputDir] [count]
+// plonk setup maze [inputs.json] [circuit.wasm] [circuit.zkey] [proofs.json] [public_signals.json] [verification_key.json]
 async function plonkSetupMaze(params, options) {
-	const inputsDir = params[0] || "inputs";
+	const inputsName = params[0] || "inputs.json";
 	const wasmName = params[1] || "circuit.wasm";
 	const zkeyName = params[2] || "circuit.zkey";
-	const outputDir = params[3] || "output";
-	let count = params[4] || 0;
-
-	try {
-		parseInt(count);
-	} catch {
-		console.error("Count value must be an integer!");
-	}
-	count = parseInt(count);
-	if (count == 0) {
-		console.error("Count value cannot be 0!");
-	}
+	const proofsName = params[3] || "proofs.json";
+	const publicsName = params[4] || "public_signals.json";
+	const verificationName = params[5] || "verification_key.json";
 
 	if (options.verbose) Logger.setLogLevel("DEBUG");
 
-	for (let i = 0; i < count; i++) {
-		const input = JSON.parse(
-			await fs.promises.readFile(
-				`${inputsDir}/input${i + 1}.json`,
-				"utf8"
-			)
-		);
+	const inputs = JSON.parse(await fs.promises.readFile(inputsName, "utf8"));
+	if (!Array.isArray(inputs)) {
+		console.error("Input file must contain array of proof inputs");
+		return;
+	}
 
+	const count = inputs.length;
+
+	const proofs = [];
+	const publicSignalsArr = [];
+
+	for (let i = 0; i < count; i++) {
 		const { proof, publicSignals } = await plonk.fullProve(
-			input,
+			inputs[i],
 			wasmName,
 			zkeyName,
 			logger
 		);
 
-		await bfj.write(
-			`${outputDir}/proof${i + 1}.json`,
-			stringifyBigInts(proof),
-			{ space: 1 }
-		);
-		await bfj.write(
-			`${outputDir}/public${i + 1}.json`,
-			stringifyBigInts(publicSignals),
-			{
-				space: 1,
-			}
-		);
-
-		const vKey = await zkey.exportVerificationKey(zkeyName);
-		await bfj.write(
-			`${outputDir}/verification_key.json`,
-			stringifyBigInts(vKey),
-			{
-				space: 1,
-			}
-		);
+		proofs.push(proof);
+		publicSignalsArr.push(publicSignals);
 	}
+
+	await bfj.write(proofsName, stringifyBigInts(proofs), { space: 1 });
+	await bfj.write(publicsName, stringifyBigInts(publicSignalsArr), {
+		space: 1,
+	});
+
+	const vKey = await zkey.exportVerificationKey(zkeyName);
+	await bfj.write(verificationName, stringifyBigInts(vKey), {
+		space: 1,
+	});
 
 	return 0;
 }
