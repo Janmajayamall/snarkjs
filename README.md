@@ -2,7 +2,7 @@
 
 # snarkjs
 
-> This fork of snarkjs implements necessary changes to build aggregation circuit for circom-plonk proofs using Maze tool. Follow the tutorial to understand how to use Maze with snarkjs.
+> **Note:** This fork of snarkjs implements necessary changes to build aggregation circuit for circom-plonk proofs using Maze tool. To use Maze with snarkjs, checkout [Maze's repo readme]().
 
 This is a **JavaScript and Pure Web Assembly implementation of zkSNARK and PLONK schemes.** It uses the Groth16 Protocol (3 point only and 3 pairings) and PLONK.
 
