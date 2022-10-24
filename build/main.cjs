@@ -13689,7 +13689,7 @@ async function plonkExportSolidityCallData(_proof, _pub) {
     Fr.toRprBE(proofBuff, G1.F.n8*18 + Fr.n8*3, Fr.e(proof.eval_s1));
     Fr.toRprBE(proofBuff, G1.F.n8*18 + Fr.n8*4, Fr.e(proof.eval_s2));
     Fr.toRprBE(proofBuff, G1.F.n8*18 + Fr.n8*5, Fr.e(proof.eval_zw));
-    Fr.toRprBE(proofBuff, G1.F.n8*18 + Fr.n8*6, Fr.e(proof.eval_r));
+    Fr.toRprBE(proofBuff, G1.F.n8*18 + Fr.n8*6, For.e(proof.eval_r));
 
     const proofHex = Array.from(proofBuff).map(i2hex).join("");
 
